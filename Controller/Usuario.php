@@ -319,7 +319,7 @@
                                 $_SESSION['observacao'] = $verifica['observacao'];
                                 $_SESSION['token'] = $novoToken;
 
-                                header("Location: ../sistema/home.php");
+                                header("Location: ../sistema-main/home.php");
                                 exit;
 
                         }else{
