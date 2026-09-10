@@ -371,7 +371,7 @@
         if($_SESSION['token'] != $imprimi['token']){
 
                 session_destroy();
-                header("Location: login.php");
+                header("Location: index.php");
                 exit;
 
         }
@@ -393,7 +393,7 @@
 
                 session_unset();
                 session_destroy();
-                header("Location: ../sistema");
+                header("Location: ../sistemahorse");
                 exit();
                 
 
