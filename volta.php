@@ -1,3 +1,294 @@
+<?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once "Includes/bootstrap.php";
+require_once "Controller/Cliente.php";
+require_once "Funcoes/Funcoes.php";
+require_once "Controller/Usuario.php";
+require_once "Controller/Volta.php";
+require_once "Controller/Cidade.php";
+
+// =========================================================
+// LOGIN
+// =========================================================
+
+$usuario = new Usuario();
+
+if (
+    !isset($_SESSION['logado']) ||
+    $_SESSION['logado'] !== "logar"
+) {
+    header("Location: index.php");
+    exit;
+}
+
+$usuario->verificaLogado($_SESSION['func']);
+
+// =========================================================
+// OBJETOS
+// =========================================================
+
+$cliente = new Cliente();
+$cidade = new Cidade();
+$objfcn = new Funcoes();
+$volta = new Volta();
+
+// =========================================================
+// CLIENTES
+// =========================================================
+
+$carregaUsuarios =
+    $usuario->selecionarUsuario();
+
+$cidades =
+    $cidade->selecionarCidade();
+
+// =========================================================
+// VARIÁVEIS
+// =========================================================
+
+$func = [];
+
+$clientesSelecionados = [];
+
+$cavalosDaJogada = [];
+
+$modoEdicao = false;
+
+$mensagemVolta = '';
+
+// =========================================================
+// EDITAR
+// =========================================================
+
+if (
+    isset($_GET['acao']) &&
+    $_GET['acao'] === 'edit'
+) {
+
+    if (!empty($_GET['func'])) {
+
+        $id_jogada =
+            $objfcn->base64(
+                $_GET['func'],
+                2
+            );
+
+        $id_jogada =
+            (int)$id_jogada;
+
+        if ($id_jogada > 0) {
+
+            $resultado =
+                $volta->selecionarJogada(
+                    $id_jogada
+                );
+
+            if (!empty($resultado)) {
+
+                $modoEdicao = true;
+
+                // ---------------------------------------------
+                // DADOS DA JOGADA
+                // ---------------------------------------------
+
+                $func =
+                    $resultado[0];
+
+                // ---------------------------------------------
+                // CLIENTES DA JOGADA
+                // ---------------------------------------------
+
+                $clientesSelecionados = [];
+
+                foreach ($resultado as $item) {
+
+                    if (
+                        isset($item['cliente']) &&
+                        $item['cliente'] !== null &&
+                        $item['cliente'] !== ''
+                    ) {
+
+                        $clientesSelecionados[] =
+                            (int)$item['cliente'];
+                    }
+                }
+
+                $clientesSelecionados =
+                    array_values(
+                        array_unique(
+                            $clientesSelecionados
+                        )
+                    );
+
+                // ---------------------------------------------
+                // CAVALOS DA JOGADA
+                // ---------------------------------------------
+
+                $cavalosDaJogada =
+                    $volta->selecionarCavalosJogada(
+                        $id_jogada
+                    );
+            }
+        }
+    }
+}
+
+// =========================================================
+// FECHAR VOLTA
+// =========================================================
+
+if (
+    isset($_GET['acao']) &&
+    $_GET['acao'] === 'fechar'
+) {
+
+    if (!empty($_GET['func'])) {
+
+        $resultado =
+            $volta->fecharVolta([
+                'func' => $_GET['func']
+            ]);
+
+        if ($resultado === "ok") {
+
+            header("Location: volta.php");
+            exit;
+        }
+    }
+}
+
+// =========================================================
+// REABRIR VOLTA
+// =========================================================
+
+if (
+    isset($_GET['acao']) &&
+    $_GET['acao'] === 'reabrir'
+) {
+
+    if (!empty($_GET['func'])) {
+
+        $resultado =
+            $volta->reabrirVolta([
+                'func' => $_GET['func']
+            ]);
+
+        if ($resultado === "ok") {
+
+            header("Location: volta.php");
+            exit;
+        }
+    }
+}
+
+// =========================================================
+// DELETAR JOGADA
+// =========================================================
+
+if (
+    isset($_GET['acao']) &&
+    $_GET['acao'] === 'delet'
+) {
+
+    if (!empty($_GET['func'])) {
+
+        $resultado =
+            $volta->deletarVolta([
+                'func' => $_GET['func']
+            ]);
+
+        if ($resultado === "ok") {
+
+            header("Location: volta.php");
+            exit;
+        }
+    }
+}
+
+// =========================================================
+// CADASTRAR
+// =========================================================
+
+if (isset($_POST['enviar'])) {
+
+    $_POST['id_user'] =
+        $_SESSION['id'];
+
+    $resultado =
+        $volta->gravarVolta($_POST);
+
+    if (
+        $resultado === "ok"
+    ) {
+
+        header("Location: volta.php");
+        exit;
+    }
+
+    if ($resultado === "fechada") {
+
+        $mensagemVolta = "
+            <div class='alert alert-danger mt-3'>
+                Esta volta está fechada.
+            </div>
+        ";
+
+    } else {
+
+        $mensagemVolta = "
+            <div class='alert alert-danger mt-3'>
+                Não foi possível cadastrar.
+            </div>
+        ";
+    }
+}
+
+// =========================================================
+// ALTERAR
+// =========================================================
+
+if (isset($_POST['btnAlterar'])) {
+
+    $resultado =
+        $volta->editarVolta($_POST);
+
+    if ($resultado === "ok") {
+
+        header("Location: volta.php");
+        exit;
+    }
+
+    if ($resultado === "fechada") {
+
+        $mensagemVolta = "
+            <div class='alert alert-warning mt-3'>
+                Esta volta está fechada.
+            </div>
+        ";
+
+    } else {
+
+        $mensagemVolta = "
+            <div class='alert alert-danger mt-3'>
+                Erro ao alterar.
+            </div>
+        ";
+    }
+}
+
+// =========================================================
+// VOLTAS
+// =========================================================
+
+$voltas =
+    $volta->selecionarVolta();
+
+
+?>
 <!doctype html>
 
 <html lang="pt-br">
@@ -12,21 +303,6 @@
     >
 
     <title>Cadastro de Voltas</title>
-
-<?php
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once "Includes/bootstrap.php";
-require_once "Controller/Cliente.php";
-require_once "Funcoes/Funcoes.php";
-require_once "Controller/Usuario.php";
-require_once "Controller/Volta.php";
-require_once "Controller/Cidade.php";
-
-?>
 
 <link
     href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
@@ -624,279 +900,9 @@ body {
 
 require_once "Includes/menu.php";
 
-// =========================================================
-// LOGIN
-// =========================================================
-
-$usuario = new Usuario();
-
-if (
-    !isset($_SESSION['logado']) ||
-    $_SESSION['logado'] !== "logar"
-) {
-    header("Location: index.php");
-    exit;
+if (!empty($mensagemVolta)) {
+    echo $mensagemVolta;
 }
-
-$usuario->verificaLogado($_SESSION['func']);
-
-// =========================================================
-// OBJETOS
-// =========================================================
-
-$cliente = new Cliente();
-$cidade = new Cidade();
-$objfcn = new Funcoes();
-$volta = new Volta();
-
-// =========================================================
-// CLIENTES
-// =========================================================
-
-$carregaUsuarios =
-    $usuario->selecionarUsuario();
-
-$cidades =
-    $cidade->selecionarCidade();
-
-// =========================================================
-// VARIÁVEIS
-// =========================================================
-
-$func = [];
-
-$clientesSelecionados = [];
-
-$cavalosDaJogada = [];
-
-$modoEdicao = false;
-
-// =========================================================
-// EDITAR
-// =========================================================
-
-if (
-    isset($_GET['acao']) &&
-    $_GET['acao'] === 'edit'
-) {
-
-    if (!empty($_GET['func'])) {
-
-        $id_jogada =
-            $objfcn->base64(
-                $_GET['func'],
-                2
-            );
-
-        $id_jogada =
-            (int)$id_jogada;
-
-        if ($id_jogada > 0) {
-
-            $resultado =
-                $volta->selecionarJogada(
-                    $id_jogada
-                );
-
-            if (!empty($resultado)) {
-
-                $modoEdicao = true;
-
-                // ---------------------------------------------
-                // DADOS DA JOGADA
-                // ---------------------------------------------
-
-                $func =
-                    $resultado[0];
-
-                // ---------------------------------------------
-                // CLIENTES DA JOGADA
-                // ---------------------------------------------
-
-                $clientesSelecionados = [];
-
-                foreach ($resultado as $item) {
-
-                    if (
-                        isset($item['cliente']) &&
-                        $item['cliente'] !== null &&
-                        $item['cliente'] !== ''
-                    ) {
-
-                        $clientesSelecionados[] =
-                            (int)$item['cliente'];
-                    }
-                }
-
-                $clientesSelecionados =
-                    array_values(
-                        array_unique(
-                            $clientesSelecionados
-                        )
-                    );
-
-                // ---------------------------------------------
-                // CAVALOS DA JOGADA
-                // ---------------------------------------------
-
-                $cavalosDaJogada =
-                    $volta->selecionarCavalosJogada(
-                        $id_jogada
-                    );
-            }
-        }
-    }
-}
-
-// =========================================================
-// FECHAR VOLTA
-// =========================================================
-
-if (
-    isset($_GET['acao']) &&
-    $_GET['acao'] === 'fechar'
-) {
-
-    if (!empty($_GET['func'])) {
-
-        $resultado =
-            $volta->fecharVolta([
-                'func' => $_GET['func']
-            ]);
-
-        if ($resultado === "ok") {
-
-            header("Location: volta.php");
-            exit;
-        }
-    }
-}
-
-// =========================================================
-// REABRIR VOLTA
-// =========================================================
-
-if (
-    isset($_GET['acao']) &&
-    $_GET['acao'] === 'reabrir'
-) {
-
-    if (!empty($_GET['func'])) {
-
-        $resultado =
-            $volta->reabrirVolta([
-                'func' => $_GET['func']
-            ]);
-
-        if ($resultado === "ok") {
-
-            header("Location: volta.php");
-            exit;
-        }
-    }
-}
-
-// =========================================================
-// DELETAR JOGADA
-// =========================================================
-
-if (
-    isset($_GET['acao']) &&
-    $_GET['acao'] === 'delet'
-) {
-
-    if (!empty($_GET['func'])) {
-
-        $resultado =
-            $volta->deletarVolta([
-                'func' => $_GET['func']
-            ]);
-
-        if ($resultado === "ok") {
-
-            header("Location: volta.php");
-            exit;
-        }
-    }
-}
-
-// =========================================================
-// CADASTRAR
-// =========================================================
-
-if (isset($_POST['enviar'])) {
-
-    $_POST['id_user'] =
-        $_SESSION['id'];
-
-    $resultado =
-        $volta->gravarVolta($_POST);
-
-    if (
-        $resultado === "ok"
-    ) {
-
-        header("Location: volta.php");
-        exit;
-    }
-
-    if ($resultado === "fechada") {
-
-        echo "
-            <div class='alert alert-danger mt-3'>
-                Esta volta está fechada.
-            </div>
-        ";
-
-    } else {
-
-        echo "
-            <div class='alert alert-danger mt-3'>
-                Não foi possível cadastrar.
-            </div>
-        ";
-    }
-}
-
-// =========================================================
-// ALTERAR
-// =========================================================
-
-if (isset($_POST['btnAlterar'])) {
-
-    $resultado =
-        $volta->editarVolta($_POST);
-
-    if ($resultado === "ok") {
-
-        header("Location: volta.php");
-        exit;
-    }
-
-    if ($resultado === "fechada") {
-
-        echo "
-            <div class='alert alert-warning mt-3'>
-                Esta volta está fechada.
-            </div>
-        ";
-
-    } else {
-
-        echo "
-            <div class='alert alert-danger mt-3'>
-                Erro ao alterar.
-            </div>
-        ";
-    }
-}
-
-// =========================================================
-// VOLTAS
-// =========================================================
-
-$voltas =
-    $volta->selecionarVolta();
 
 ?>
 

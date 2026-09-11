@@ -77,7 +77,7 @@
 
           try{
            $this->id = $this->objfcn->base64($dado, 2);
-           $selecionar = $this->con->conectar()->prepare("SELECT id, nome, email, cpf, telefone, observacao FROM cliente WHERE id = :idCliente");
+           $selecionar = $this->con->conectar()->prepare("SELECT id, nome FROM cidade WHERE id = :idCliente");
            $selecionar->bindParam(':idCliente', $this->id, PDO::PARAM_INT);
            $selecionar->execute();
            return $selecionar->fetch(PDO::FETCH_ASSOC);
@@ -93,18 +93,10 @@
             $this->id = $this->objfcn->base64($dado['func'], 2);
 
             $this->nome = $dado['nome'];
-            $this->email = $dado['email'];
-            $this->cpf = $dado['cpf'];
-            $this->telefone = $dado['telefone'];
-            $this->observacao = $dado['observacao'];
 
-            $inserir = $this->con->conectar()->prepare("UPDATE cliente SET nome = :nome, email = :email, cpf = :cpf, telefone = :telefone, observacao = :observacao WHERE id = :idCliente");
+            $inserir = $this->con->conectar()->prepare("UPDATE cidade SET nome = :nome WHERE id = :idCliente");
             $inserir->bindParam(":idCliente" , $this->id, PDO::PARAM_INT);
             $inserir->bindParam(":nome" , $this->nome, PDO::PARAM_STR);
-            $inserir->bindParam(":email" , $this->email, PDO::PARAM_STR);
-            $inserir->bindParam(":cpf" , $this->cpf, PDO::PARAM_STR);
-            $inserir->bindParam(":telefone" , $this->telefone, PDO::PARAM_STR);
-            $inserir->bindParam(":observacao" , $this->observacao, PDO::PARAM_STR);
 
             if($inserir->execute()){
                 return 'ok';
@@ -121,7 +113,7 @@
 
           try{
            $this->id = $this->objfcn->base64($dado, 2);
-           $selecionar = $this->con->conectar()->prepare("DELETE FROM cliente WHERE id = :idCliente");
+           $selecionar = $this->con->conectar()->prepare("DELETE FROM cidade WHERE id = :idCliente");
            $selecionar->bindParam(':idCliente', $this->id, PDO::PARAM_INT);
            if($selecionar->execute()){
             return 'ok';
